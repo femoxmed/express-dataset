@@ -8,73 +8,86 @@ const countInArray = (arr, val) => {
 
 // const checkDuplicateTie
 const getStreak = async (req, res) => {
-	const actors = await dbRepository.readTable('actors');
-	const orderBy = ' ORDER BY id ASC';
-	let eventRecords = await dbRepository.readTable('events', ' ', orderBy);
+	try {
+		const actors = await dbRepository.readTable('actors');
+		const orderBy = ' ORDER BY id ASC';
+		let eventRecords = await dbRepository.readTable('events', ' ', orderBy);
 
-	// get event record with their actor login
-	eventRecords = await Promise.all(
-		eventRecords.map(async (event) => {
-			const actor = await dbRepository.getRow('actors', event.actor_id);
-			const { id, type, created_at } = event;
-			let newcreated_at = new Date(created_at);
+		// get event record with their actor login
+		eventRecords = await Promise.all(
+			eventRecords.map(async (event) => {
+				const actor = await dbRepository.getRow('actors', event.actor_id);
+				const { id, type, created_at } = event;
+				let newcreated_at = new Date(created_at);
 
-			return {
-				id,
-				actor,
-				timestamp: newcreated_at.valueOf(),
-				created_at: newcreated_at.toDateString(),
-			};
-		}),
-	);
+				return {
+					id,
+					actor,
+					timestamp: newcreated_at.valueOf(),
+					created_at: newcreated_at.toDateString(),
+				};
+			}),
+		);
 
-	let streaksData = await Promise.all(
-		actors.map(async (actor) => {
-			let er = await eventRecords
-				.filter((eventRecord) => {
-					return actor.login == eventRecord.actor.login;
-				})
-				.map((evrmapped) => {
-					return evrmapped.created_at;
-				});
+		// get the  events and their timestamps for each actor for each day
+		let streaksData = await Promise.all(
+			actors.map(async (actor) => {
+				let er = await eventRecords
+					.filter((eventRecord) => {
+						return actor.login == eventRecord.actor.login;
+					})
+					.map((evrmapped) => {
+						return evrmapped.created_at;
+					});
 
-			let timestamp = await eventRecords
-				.filter((eventRecord) => {
-					return actor.login == eventRecord.actor.login;
-				})
-				.map((evrmapped) => {
-					return evrmapped.timestamp;
-				});
+				let timestamp = await eventRecords
+					.filter((eventRecord) => {
+						return actor.login == eventRecord.actor.login;
+					})
+					.map((evrmapped) => {
+						return evrmapped.timestamp;
+					});
 
-			let unique = [...new Set(er)];
+				//removes duplicate data
+				let unique = [...new Set(er)];
 
-			let maxNumber = Math.max(...timestamp);
-			return {
-				id: actor.id,
-				login: actor.login,
-				avatar_url: actor.avatar_url,
-				timestamps: maxNumber,
-				streaks: unique.length,
-			};
-		}),
-	);
-	let list_of_streaks = streaksData.map((strk) => strk.streaks);
-	let maxNumber = Math.max(...list_of_streaks);
-	let count = countInArray(list_of_streaks, maxNumber);
-	let finalActorStreaks;
-	if (count > 1) {
-		finalActorStreaks = streaksData.sort(function (a, b) {
-			return b.timestamps - a.timestamps;
+				// gets the max time stamp
+				let maxNumber = Math.max(...timestamp);
+
+				return {
+					id: actor.id,
+					login: actor.login,
+					avatar_url: actor.avatar_url,
+					timestamps: maxNumber,
+					streaks: unique.length,
+				};
+			}),
+		);
+		//getting list of number of streas and check if the max number repeats
+		let list_of_streaks = streaksData.map((strk) => strk.streaks);
+		let maxNumber = Math.max(...list_of_streaks);
+		let count = countInArray(list_of_streaks, maxNumber);
+
+		// if max number of streaks is > 1 sort by timestamp instead
+		let finalActorStreaks;
+		if (count > 1) {
+			finalActorStreaks = streaksData.sort(function (a, b) {
+				return b.timestamps - a.timestamps;
+			});
+		} else {
+			finalActorStreaks = streaksData.sort(function (a, b) {
+				return b.streaks - a.streaks;
+			});
+		}
+
+		//sendind the appropriate response
+		let result = finalActorStreaks.map(({ id, login, avatar_url }) => {
+			return { id, login, avatar_url };
 		});
-	} else {
-		finalActorStreaks = streaksData.sort(function (a, b) {
-			return b.streaks - a.streaks;
-		});
+		res.send(result);
+	} catch (error) {
+		return responseMethod(res, 400, error);
 	}
-	let result = finalActorStreaks.map(({ id, login, avatar_url }) => {
-		return { id, login, avatar_url };
-	});
-	res.send(result);
 };
 
 const getAllActors = async (req, res) => {
@@ -82,7 +95,7 @@ const getAllActors = async (req, res) => {
 		const actors = await dbRepository.readTable('actors');
 		res.status(200).json(actors);
 	} catch (error) {
-		throw new Error(error);
+		return responseMethod(res, 400, error);
 	}
 };
 
