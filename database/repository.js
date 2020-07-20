@@ -13,6 +13,15 @@ var schema = {
 };
 
 /* CRUD functions: readTable, createRow, updateRow, deleteRow             */
+const runQuery = (query) => {
+	return new Promise((resolve, reject) => {
+		db.all(query, (err, rows) => {
+			/* Return all results of query */
+			if (err) reject(err); /* rejects the err and send response */
+			resolve(rows);
+		});
+	});
+};
 
 const readTable = (table, condition = null, orderBy = '') => {
 	let sql = !condition
@@ -21,7 +30,7 @@ const readTable = (table, condition = null, orderBy = '') => {
 	return new Promise((resolve, reject) => {
 		db.all(sql, (err, rows) => {
 			/* Return all results of query */
-			if (err) reject(err); /* If there's an error, terminate app */
+			if (err) reject(err); /* rejects the err and send response */
 			resolve(rows);
 		});
 	});
@@ -108,6 +117,7 @@ const deleteAllRows = (table, condition = null) => {
 
 module.exports = {
 	schema,
+	runQuery,
 	readTable,
 	createRow,
 	getRow,

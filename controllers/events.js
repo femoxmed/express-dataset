@@ -33,20 +33,21 @@ const createRepoActorIfNotExist = async (repo, actor) => {
 			const repoExist = await dbRepository.getRow('repos', repo.id);
 			const actorExist = await dbRepository.getRow('actors', actor.id);
 			if (actorExist && repoExist) {
-				resolve(true);
+				return resolve(true);
 			} else {
 				if (!repoExist) {
 					await dbRepository.createRow('repos', {
 						...repo,
 						actor_id: actor.id,
 					});
-					if (!actorExist) {
-						await dbRepository.createRow('actors', { ...actor });
-					}
-					resolve(true);
 				}
+				if (!actorExist) {
+					await dbRepository.createRow('actors', actor);
+				}
+				return resolve(true);
 			}
 		} catch (error) {
+			console.log('ss', error);
 			reject(error);
 		}
 	});
@@ -72,11 +73,12 @@ const addEvent = async (req, res) => {
 
 		//validating event type
 		if (!eventTypes.includes(type))
-			responseMethod(res, 400, 'invalid event type');
+			return responseMethod(res, 400, 'invalid event type');
 
 		//checks repo and actor in database and creates the record if !exists
 		const event = await dbRepository.getRow('events', id);
 		if (event) responseMethod(res, 400, 'Event With this id exists');
+
 		let check = await createRepoActorIfNotExist(repo, actor);
 		if (check) {
 			const eventObject = {
