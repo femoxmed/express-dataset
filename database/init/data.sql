@@ -6,8 +6,7 @@
 CREATE TABLE IF NOT EXISTS actors (
   id INTEGER PRIMARY KEY,
   login TEXT NOT NULL UNIQUE,
-  avatar_url TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  avatar_url TEXT NOT NULL
 );
 
 -- REPOSITORY --
@@ -17,7 +16,6 @@ id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   url TEXT NOT NULL,
   actor_id INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
   FOREIGN KEY(actor_id)
       REFERENCES actors (actor_id)
 );

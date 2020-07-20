@@ -7,8 +7,8 @@ var db = require('./db');
 /*  var schema is used for convenience to get column names in updateRow() */
 
 var schema = {
-	actors: ['id', 'login', 'avatar_url', 'created_at'],
-	repos: ['id', 'url', 'name', 'created_at'],
+	actors: ['id', 'login', 'avatar_url'],
+	repos: ['id', 'url', 'name'],
 	events: ['id', 'type', 'actor_id', 'repo_id', 'created_at'],
 };
 
@@ -50,14 +50,8 @@ const createRow = (table, data) => {
 	const rows = Object.keys(data);
 	let values = Object.values(data);
 	values = "'" + values.join("','") + "'";
-	let sql;
-	if (data.created_at) {
-		sql = `INSERT INTO ${table}(${rows.join(', ')}) values (${values})`;
-	} else {
-		sql = `INSERT INTO ${table}(${rows.join(
-			', ',
-		)}, created_at) values (${values} , datetime('now'))`;
-	}
+
+	sql = `INSERT INTO ${table}(${rows.join(', ')}) values (${values})`;
 
 	return new Promise((resolve, reject) => {
 		db.run(sql, async function (err) {
